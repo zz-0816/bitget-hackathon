@@ -8,6 +8,9 @@ package/
 .claude/paste-cache/
 .claude/telemetry/
 
+__pycache__/
+*.pyc
+
 # Sensitive — don't commit API keys to public repos
 .claude/settings.local.json
 .mcp.json
