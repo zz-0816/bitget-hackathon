@@ -45,19 +45,35 @@
 ```
 bitget_test/
 ├── agent/                       # 🤖 Agent 核心引擎（感知→决策→执行→风控）
-│   └── (待创建: agent.py, config.py, perception.py,
-│            decision.py, execution.py, risk.py)
+│   ├── __init__.py              # ✅ 模块入口
+│   ├── agent.py                 # ✅ 主控循环 (TradingAgent + AgentOutput)
+│   ├── config.py                # ✅ 配置中心 (策略参数/风控阈值/沙盒开关)
+│   ├── perception.py            # ✅ 感知层 (指标计算 + MarketData/Sentiment/Macro)
+│   ├── decision.py              # ✅ 决策层 (Signal/SignalType + DecisionEngine + 情绪过滤)
+│   ├── execution.py             # ✅ 执行层 (Order → Bitget MCP 参数映射)
+│   └── risk.py                  # ✅ 风控层 (仓位2%/敞口30%/日亏损熔断5%/RR 1.5:1)
 │
 ├── strategies/                  # 📊 策略模块
-│   └── (待创建: btc_smc.py, meme_momentum.py,
-│            adaptive_hybrid.py)
+│   ├── __init__.py              # ✅ 模块入口
+│   ├── base.py                  # ✅ Strategy ABC + Signal/SignalType
+│   ├── indicators.py            # ✅ 60+ 技术指标库 (@register 注册机制)
+│   ├── btc_smc.py               # ✅ BTC 三重确认 SMC 策略 (4H)
+│   ├── meme_momentum.py         # ✅ MEME 动量突破策略 (1H)
+│   └── playbook.py              # ✅ 策略注册中心 + 批量评估 + pick_best()
+│
+├── data/                        # 📦 历史行情数据
+│   ├── btc_4h.json              # ✅ BTC/USDT 4H (500 bars)
+│   ├── btc_1d.json              # ✅ BTC/USDT 1D (366 bars)
+│   ├── doge_1h.json             # ✅ DOGE/USDT 1H (500 bars)
+│   └── doge_1d.json             # ✅ DOGE/USDT 1D (366 bars)
 │
 ├── backtest/                    # 📈 回测模块
 │   └── (待创建: 各策略独立回测 + benchmark.py)
 │
-├── docs/                        # 📄 文档
-│   └── (待创建: architecture.md, submission.md,
-│            demo_script.md)
+├── docs/                        # 📄 文档与架构图
+│   ├── images/                  # ✅ Skill Hub 感知层截图
+│   ├── generate_step1_images.py # ✅ Step1 图片生成脚本
+│   └── step2_verify.py          # ✅ MCP 验证脚本
 │
 ├── tests/                       # 🧪 测试
 │   └── (待创建: test_indicators.py, test_strategies.py,
@@ -66,9 +82,11 @@ bitget_test/
 ├── scripts/                     # 🔧 工具脚本
 │   └── (待创建: setup_mcp.sh, fetch_data.py)
 │
-├── backtest.py                  # ✅ 已有 — 合成数据回测
-├── backtest_strategies.py       # ✅ 已有 — 真实数据回测
-├── .mcp.json                    # ✅ 已有 — MCP Server 配置
+├── main.py                      # ✅ Demo 入口 (4 场景验证完整流水线)
+├── backtest.py                  # ✅ 真实数据回测 (8 策略变体)
+├── backtest_strategies.py       # ✅ 已有 — 策略参考实现
+├── CLAUDE.md                    # ✅ Karpathy 编码准则
+├── .mcp.json                    # ✅ MCP Server 配置 (已在 .gitignore)
 └── README.md                    # 📋 本文件
 ```
 
@@ -78,24 +96,34 @@ bitget_test/
 
 | 日期 | 完成内容 | 备注 |
 |------|---------|------|
-| **2026-06-09** | 项目框架设计 | 确定 Agent 四层闭环架构；确定策略方向(BTC SMC + MEME 动量)；确定技术选型(MCP + Skill Hub + Playbook)；完成目录框架搭建 |
+| **2026-06-09** | 项目框架设计 | 确定 Agent 四层闭环架构；确定策略方向(BTC SMC + MEME 动量)；确定技术选型(MCP + Skill Hub)；完成目录框架搭建 |
+| **2026-06-10** | Step 1-2: Skill Hub & MCP 验证 | 5 个感知 Skill 全部调通；MCP 模拟下单/查仓/取消订单验证通过；确认 Bitget Demo API 平仓反直觉行为 |
+| **2026-06-11** | Phase 1-2: Agent 引擎 + 策略模块 | agent/ 四层闭环全部实现；strategies/ 含 60+ 指标库 + BTC SMC + MEME Mom + Playbook；main.py 4 场景 Demo 验证通过；回测从合成数据切换到真实数据 |
 
 ---
 
 ## 四、待办清单
 
-### Phase 1 — 核心 Agent（预计 6/10–6/13）
+### Phase 1 — 核心 Agent（已完成 6/10–6/11）
 
-- [ ] `agent/perception.py` — 感知层，对接 Skill Hub
-- [ ] `agent/decision.py` — 决策层，信号引擎
-- [ ] `agent/execution.py` — 执行层，对接 MCP
-- [ ] `agent/risk.py` — 风控层，仓位/止损/熔断
-- [ ] `agent/agent.py` — 主控循环
+- [x] `agent/perception.py` — 感知层，对接 Skill Hub
+- [x] `agent/decision.py` — 决策层，信号引擎
+- [x] `agent/execution.py` — 执行层，对接 MCP
+- [x] `agent/risk.py` — 风控层，仓位/止损/熔断
+- [x] `agent/agent.py` — 主控循环
+- [x] `agent/config.py` — 配置中心
+- [x] `main.py` — Demo 入口，4 场景验证完整流水线
 
-### Phase 2 — 策略实现（预计 6/14–6/17）
+### Phase 2 — 策略实现（已完成 6/11）
 
-- [ ] `strategies/btc_smc.py` — BTC 三重确认 SMC 策略
-- [ ] `strategies/meme_momentum.py` — MEME 动量突破策略
+- [x] `strategies/base.py` — Strategy ABC + Signal/SignalType
+- [x] `strategies/indicators.py` — 60+ 技术指标库 (@register 注册)
+- [x] `strategies/btc_smc.py` — BTC 三重确认 SMC 策略 (4H)
+- [x] `strategies/meme_momentum.py` — MEME 动量突破策略 (1H)
+- [x] `strategies/playbook.py` — 策略注册中心 + 批量评估
+- [x] `strategies/__init__.py` — 模块导出
+- [ ] `strategies/compiler.py` — 自然语言策略编译器（JSON config → Strategy）
+- [ ] `strategies/adaptive_hybrid.py` — 自适应混合策略 (可选)
 
 ### Phase 3 — 回测验证（预计 6/18–6/20）
 
@@ -146,8 +174,9 @@ python backtest_strategies.py
 
 ## 六、提交材料清单
 
-- [ ] **Demo 链接**（必填）— 可公开访问，真实可运行
-- [ ] **项目说明**（必填）— 200 字以内
+- [x] **Demo 链接**（必填）— 可公开访问，真实可运行
+- [x] **项目说明**（必填）— 200 字以内
 - [ ] **视频演示**（选填）— 不超过 3 分钟
-- [ ] **回测/模拟交易记录** — 附在 Demo 中
+- [x] **回测/模拟交易记录** — 已附 backtest.py 真实数据回测
+- [x] **GitHub 仓库** — https://github.com/zz-0816/bitget-hackathon
 - [ ] **传播帖链接** — 带 #BitgetHackathon
