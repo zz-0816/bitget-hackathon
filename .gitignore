@@ -14,3 +14,16 @@ __pycache__/
 # Sensitive — don't commit API keys to public repos
 .claude/settings.local.json
 .mcp.json
+
+# Claude internal state (not project code)
+.claude/andrej-karpathy-skills/
+.claude/projects/
+.claude/file-history/
+.claude/history.jsonl
+.claude/backups/
+.claude/.last-cleanup
+.claude/ide/
+
+# Docs & temp files
+*.docx
+~$*
