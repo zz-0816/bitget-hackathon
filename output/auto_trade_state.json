@@ -1,0 +1,17 @@
+{
+  "strategy_text": "BTCUSDT 15min趋势跟随 EMA金叉进场 MACD上涨确认 做多 止损1%止盈2%",
+  "parsed_symbol": "BTCUSDT",
+  "parsed_timeframe": "5min",
+  "parsed_direction": "long",
+  "parsed_template": "trend_following",
+  "parsed_sl_pct": 1.0,
+  "parsed_tp_pct": 2.0,
+  "parsed_position_pct": 2.0,
+  "in_position": false,
+  "position": {},
+  "entry_time": "",
+  "cycle_count": 9,
+  "trades_completed": 0,
+  "total_pnl": 0.0,
+  "trade_history": []
+}

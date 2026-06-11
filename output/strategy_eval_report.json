@@ -1,0 +1,92 @@
+{
+  "strategy": {
+    "raw": "BTC 4H趋势跟随策略 EMA金叉 止损2%",
+    "symbol": "BTCUSDT",
+    "timeframe": "4H",
+    "template": "trend_following",
+    "direction": "both",
+    "stop_loss_pct": 2.0,
+    "take_profit_pct": null,
+    "position_pct": 2.0
+  },
+  "market": {
+    "timestamp": "2026-06-11T21:35:45.784223",
+    "technical": {
+      "symbol": "BTCUSDT",
+      "timeframe": "4H",
+      "close": 97000,
+      "rsi": 50,
+      "macd_dif": -10,
+      "macd_dea": 5,
+      "macd_hist": null,
+      "ema_20": 97500,
+      "ema_50": 96500,
+      "atr": 1000,
+      "adx": 20,
+      "bb_upper": 99000,
+      "bb_mid": 97000,
+      "bb_lower": 95000,
+      "volume_surge": false,
+      "trend_direction": "neutral",
+      "support": [],
+      "resistance": []
+    },
+    "sentiment": {
+      "fear_greed_index": 50,
+      "fear_greed_label": "neutral",
+      "long_short_ratio": 1.0,
+      "taker_buy_ratio": 0.5
+    },
+    "macro": {
+      "regime": "neutral",
+      "fed_funds_rate": null,
+      "dxy": null,
+      "btc_nasdaq_correlation": null
+    },
+    "news": {
+      "has_major_event": false,
+      "bias": "neutral",
+      "summary": ""
+    }
+  },
+  "evaluation": {
+    "result": "ENTRY_SHORT",
+    "confidence": 0.6,
+    "passed_checks": 3,
+    "total_checks": 5,
+    "reason": "通过: MACD Direction, RSI Zone, Price vs EMA20 | 未通过: EMA Alignment, ADX Trending",
+    "risk_warnings": [],
+    "checks": [
+      {
+        "name": "EMA Alignment",
+        "passed": false,
+        "expected": "EMA20 < EMA50",
+        "actual": "EMA20=97500.0 EMA50=96500.0"
+      },
+      {
+        "name": "MACD Direction",
+        "passed": true,
+        "expected": "DIF < DEA",
+        "actual": "DIF=-10.0000 DEA=5.0000"
+      },
+      {
+        "name": "ADX Trending",
+        "passed": false,
+        "expected": "ADX > 25",
+        "actual": "ADX=20.0"
+      },
+      {
+        "name": "RSI Zone",
+        "passed": true,
+        "expected": "RSI 35-55",
+        "actual": "RSI=50.0"
+      },
+      {
+        "name": "Price vs EMA20",
+        "passed": true,
+        "expected": "Price < EMA20",
+        "actual": "Close=97000.0 EMA20=97500.0"
+      }
+    ]
+  }
+}

@@ -496,6 +496,377 @@ def _run_full_demo() -> None:
     """)
 
 
+def _evaluate_and_execute_flow(strategy_text: str, market_data_json: str = "",
+                              execute: bool = False, dry_run: bool = True) -> None:
+    """Evaluate strategy conditions against market data, optionally execute.
+
+    This is the core flow that Claude Code calls after invoking Skills:
+      1. Parse NL strategy
+      2. Load market data from JSON (populated by Skills)
+      3. Evaluate strategy conditions
+      4. Print comprehensive report
+      5. If execute=True, place trade via DemoClient
+    """
+    from agent.strategy_factory import parse_strategy, generate_config_yaml
+    from agent.strategy_executor import (
+        evaluate_strategy, execute_trade, print_eval_report
+    )
+    from agent.market_snapshot import MarketSnapshot
+
+    banner("Strategy Evaluation + Execution Engine")
+
+    # Step 0: Parse strategy
+    print(f"\n  Input: \"{strategy_text}\"")
+    parsed = parse_strategy(strategy_text)
+    print(f"  Parsed: {parsed.symbol} {parsed.timeframe} | "
+          f"{parsed.template} | {parsed.direction} | "
+          f"SL={parsed.stop_loss_pct}% TP={parsed.take_profit_pct}% | "
+          f"Confidence={parsed.confidence:.0%}")
+
+    # Step 1: Load market data
+    market = MarketSnapshot()
+    if market_data_json:
+        try:
+            data = json.loads(market_data_json) if isinstance(market_data_json, str) else market_data_json
+            tech = data.get("technical", {})
+            market.technical.symbol = tech.get("symbol", parsed.symbol)
+            market.technical.timeframe = tech.get("timeframe", parsed.timeframe)
+            market.technical.close = tech.get("close", 0)
+            market.technical.rsi = tech.get("rsi")
+            market.technical.macd_dif = tech.get("macd_dif")
+            market.technical.macd_dea = tech.get("macd_dea")
+            market.technical.macd_hist = tech.get("macd_hist")
+            market.technical.ema_12 = tech.get("ema_12")
+            market.technical.ema_26 = tech.get("ema_26")
+            market.technical.ema_20 = tech.get("ema_20")
+            market.technical.ema_50 = tech.get("ema_50")
+            market.technical.atr = tech.get("atr")
+            market.technical.adx = tech.get("adx")
+            market.technical.bb_upper = tech.get("bb_upper")
+            market.technical.bb_mid = tech.get("bb_mid")
+            market.technical.bb_lower = tech.get("bb_lower")
+            market.technical.volume_surge = tech.get("volume_surge", False)
+            market.technical.trend_direction = tech.get("trend_direction", "neutral")
+
+            sent = data.get("sentiment", {})
+            market.sentiment.fear_greed_index = sent.get("fear_greed_index", 50)
+            market.sentiment.fear_greed_label = sent.get("fear_greed_label", "neutral")
+            market.sentiment.long_short_ratio = sent.get("long_short_ratio", 1.0)
+
+            macro = data.get("macro", {})
+            market.macro.regime = macro.get("regime", "neutral")
+            market.macro.fed_funds_rate = macro.get("fed_funds_rate")
+            market.macro.btc_nasdaq_correlation = macro.get("btc_nasdaq_correlation")
+
+            news = data.get("news", {})
+            market.news.has_major_event = news.get("has_major_event", False)
+            market.news.bias = news.get("bias", "neutral")
+            market.news.event_summary = news.get("summary", "")
+
+            print(f"  Market data loaded: {market.technical.symbol} "
+                  f"Close={market.technical.close:.1f} RSI={market.technical.rsi}")
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            print(f"  WARNING: Failed to parse market data: {e}")
+            print(f"  Will evaluate with empty market snapshot (all checks will fail)")
+    else:
+        print(f"  WARNING: No market data provided. Will evaluate with empty snapshot.")
+
+    # Step 2: Evaluate strategy conditions
+    print(f"\n── Evaluating Strategy Conditions ──")
+    eval_result = evaluate_strategy(parsed, market)
+
+    # Step 3: Execute if conditions met and execute flag is set
+    exec_result = None
+    if execute and eval_result.result.value != "NO_TRADE":
+        print(f"\n── Executing Trade ──")
+        try:
+            mcp_path = os.path.join(os.path.dirname(__file__), ".mcp.json")
+            with open(mcp_path) as f:
+                mcp_cfg = json.load(f)
+            env = mcp_cfg["mcpServers"]["bitget"]["env"]
+
+            from demo_trading_test import DemoClient
+            client = DemoClient(
+                api_key=env["BITGET_API_KEY"],
+                secret=env["BITGET_SECRET_KEY"],
+                passphrase=env["BITGET_PASSPHRASE"],
+            )
+            exec_result = execute_trade(parsed, eval_result, market, client, dry_run=dry_run)
+        except Exception as e:
+            exec_result = type("ExecResult", (), {"executed": False, "error": str(e), "api_log": []})()
+            print(f"  Execution failed: {e}")
+    elif execute:
+        print(f"\n── Execution Skipped (no entry signal) ──")
+
+    # Step 4: Print comprehensive report
+    print_eval_report(parsed, market, eval_result, exec_result)
+
+    # Step 5: Save evaluation to file
+    report = {
+        "strategy": {
+            "raw": strategy_text,
+            "symbol": parsed.symbol,
+            "timeframe": parsed.timeframe,
+            "template": parsed.template,
+            "direction": parsed.direction,
+            "stop_loss_pct": parsed.stop_loss_pct,
+            "take_profit_pct": parsed.take_profit_pct,
+            "position_pct": parsed.position_pct,
+        },
+        "market": market.to_dict(),
+        "evaluation": {
+            "result": eval_result.result.value,
+            "confidence": eval_result.confidence,
+            "passed_checks": eval_result.passed_count,
+            "total_checks": eval_result.total_count,
+            "reason": eval_result.reason,
+            "risk_warnings": eval_result.risk_warnings,
+            "checks": [{"name": c.name, "passed": c.passed, "expected": c.expected, "actual": c.actual}
+                      for c in eval_result.checks],
+        },
+    }
+    if exec_result:
+        report["execution"] = {
+            "executed": exec_result.executed,
+            "order_id": getattr(exec_result, "order_id", ""),
+            "error": getattr(exec_result, "error", ""),
+        }
+
+    report_path = os.path.join(OUTPUT_DIR, "strategy_eval_report.json")
+    with open(report_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2, default=str)
+    print(f"  Report saved → {report_path}")
+
+
+def _full_trade_flow(strategy_text: str, market_data_json: str = "",
+                     execute: bool = False, dry_run: bool = True) -> dict:
+    """Complete trading agent flow: NL → Skills → Evaluate → Metrics → Execute → Monitor.
+
+    This is the main flow that Claude Code orchestrates:
+      1. Parse NL strategy
+      2. Load market data from Skills
+      3. Evaluate entry conditions (5 checks per template)
+      4. Estimate win rate, RR ratio, expected return
+      5. Execute trade if conditions met
+      6. Return monitoring instructions for continued oversight
+
+    Returns a dict with all steps and monitoring guidance for Claude Code.
+    """
+    from agent.strategy_factory import parse_strategy, TEMPLATES
+    from agent.strategy_executor import (
+        evaluate_strategy, execute_trade, print_eval_report,
+        estimate_trade_metrics, EvalResult,
+    )
+    from agent.position_monitor import PositionMonitor, print_monitor_status
+    from agent.market_snapshot import MarketSnapshot
+
+    banner("Complete Trading Agent Flow")
+
+    # ═══════════════════════════════════════════════════════════════════
+    # Step 1: Parse NL strategy
+    # ═══════════════════════════════════════════════════════════════════
+    print(f"\n  [Step 1] 解析自然语言策略")
+    parsed = parse_strategy(strategy_text)
+    t = TEMPLATES.get(parsed.template, {})
+    print(f"  模板:   {t.get('name', parsed.template)}")
+    print(f"  交易对: {parsed.symbol} | 周期: {parsed.timeframe}")
+    print(f"  方向:   {parsed.direction} | 仓位: {parsed.position_pct}%")
+    print(f"  止损:   {parsed.stop_loss_pct or 5}% | 止盈: {parsed.take_profit_pct or 10}%")
+    print(f"  入场逻辑: {parsed.entry_desc}")
+    print(f"  出场逻辑: {parsed.exit_desc}")
+
+    # ═══════════════════════════════════════════════════════════════════
+    # Step 2: Load market data
+    # ═══════════════════════════════════════════════════════════════════
+    print(f"\n  [Step 2] 加载 Skill 提供的市场数据")
+    market = MarketSnapshot()
+    if market_data_json:
+        try:
+            data = json.loads(market_data_json) if isinstance(market_data_json, str) else market_data_json
+            tech = data.get("technical", {})
+            market.technical.symbol = tech.get("symbol", parsed.symbol)
+            market.technical.timeframe = tech.get("timeframe", parsed.timeframe)
+            market.technical.close = tech.get("close", 0)
+            market.technical.rsi = tech.get("rsi")
+            market.technical.macd_dif = tech.get("macd_dif")
+            market.technical.macd_dea = tech.get("macd_dea")
+            market.technical.macd_hist = tech.get("macd_hist")
+            market.technical.ema_12 = tech.get("ema_12")
+            market.technical.ema_26 = tech.get("ema_26")
+            market.technical.ema_20 = tech.get("ema_20")
+            market.technical.ema_50 = tech.get("ema_50")
+            market.technical.atr = tech.get("atr")
+            market.technical.adx = tech.get("adx")
+            market.technical.bb_upper = tech.get("bb_upper")
+            market.technical.bb_mid = tech.get("bb_mid")
+            market.technical.bb_lower = tech.get("bb_lower")
+            market.technical.volume_surge = tech.get("volume_surge", False)
+            market.technical.trend_direction = tech.get("trend_direction", "neutral")
+            market.technical.support_levels = tech.get("support", [])
+            market.technical.resistance_levels = tech.get("resistance", [])
+
+            sent = data.get("sentiment", {})
+            market.sentiment.fear_greed_index = sent.get("fear_greed_index", 50)
+            market.sentiment.fear_greed_label = sent.get("fear_greed_label", "neutral")
+            market.sentiment.long_short_ratio = sent.get("long_short_ratio", 1.0)
+            market.sentiment.taker_buy_ratio = sent.get("taker_buy_ratio", 0.5)
+
+            macro = data.get("macro", {})
+            market.macro.regime = macro.get("regime", "neutral")
+            market.macro.fed_funds_rate = macro.get("fed_funds_rate")
+            market.macro.btc_nasdaq_correlation = macro.get("btc_nasdaq_correlation")
+
+            news = data.get("news", {})
+            market.news.has_major_event = news.get("has_major_event", False)
+            market.news.bias = news.get("bias", "neutral")
+            market.news.event_summary = news.get("summary", "")
+        except Exception as e:
+            print(f"  WARNING: 市场数据解析失败: {e}")
+
+    print(f"  {market.summary()}")
+
+    # ═══════════════════════════════════════════════════════════════════
+    # Step 3: Evaluate entry conditions
+    # ═══════════════════════════════════════════════════════════════════
+    print(f"\n  [Step 3] 评估策略入场条件")
+    eval_result = evaluate_strategy(parsed, market)
+
+    for c in eval_result.checks:
+        icon = "[PASS]" if c.passed else "[FAIL]"
+        print(f"  {icon} {c.name}: 期望={c.expected} | 实际={c.actual}")
+
+    print(f"  结果: {eval_result.passed_count}/{eval_result.total_count} 条件通过")
+    print(f"  信心度: {eval_result.confidence:.0%}")
+
+    if eval_result.result == EvalResult.NO_TRADE:
+        print(f"\n  [结论] 不满足入场条件，保持观望")
+        if eval_result.reason:
+            print(f"  原因: {eval_result.reason}")
+        if eval_result.risk_warnings:
+            for w in eval_result.risk_warnings:
+                print(f"  [!] {w}")
+        return {"status": "no_trade", "reason": eval_result.reason,
+                "parsed": parsed.__dict__, "market": market.to_dict(),
+                "evaluation": eval_result.__dict__}
+
+    # ═══════════════════════════════════════════════════════════════════
+    # Step 4: Calculate trade metrics
+    # ═══════════════════════════════════════════════════════════════════
+    print(f"\n  [Step 4] 计算交易指标")
+    metrics = estimate_trade_metrics(parsed, eval_result, market)
+
+    print(f"  入场价:   {metrics.entry_price:.1f}")
+    print(f"  止损位:   {metrics.stop_loss:.1f} ({metrics.risk_pct}%)")
+    print(f"  止盈位:   {metrics.take_profit:.1f} ({metrics.reward_pct}%)")
+    print(f"  盈亏比:   {metrics.risk_reward_ratio:.2f}:1")
+    print(f"  预估胜率: {metrics.estimated_win_rate:.1%}")
+    print(f"  期望收益: {metrics.expectancy:.2f}% per trade")
+    print(f"  盈亏平衡胜率: {metrics.breakeven_win_rate:.1%}")
+    print(f"  Kelly比例: {metrics.kelly_fraction:.1%}")
+
+    # ═══════════════════════════════════════════════════════════════════
+    # Step 5: Execute trade
+    # ═══════════════════════════════════════════════════════════════════
+    print(f"\n  [Step 5] 执行交易{' (模拟)' if dry_run else ' (实盘)'}")
+    exec_result = None
+
+    if execute or not dry_run:
+        try:
+            mcp_path = os.path.join(os.path.dirname(__file__), ".mcp.json")
+            with open(mcp_path) as f:
+                mcp_cfg = json.load(f)
+            env = mcp_cfg["mcpServers"]["bitget"]["env"]
+
+            from demo_trading_test import DemoClient
+            client = DemoClient(
+                api_key=env["BITGET_API_KEY"],
+                secret=env["BITGET_SECRET_KEY"],
+                passphrase=env["BITGET_PASSPHRASE"],
+            )
+            exec_result = execute_trade(parsed, eval_result, market, client, dry_run=dry_run)
+
+            if exec_result.executed:
+                print(f"  入场订单: {exec_result.order_id}")
+                print(f"  止损订单: {exec_result.sl_order_id}")
+                print(f"  止盈订单: {exec_result.tp_order_id}")
+            elif exec_result.error:
+                print(f"  {exec_result.error}")
+        except Exception as e:
+            print(f"  交易执行失败: {e}")
+            exec_result = type("ExecResult", (), {"executed": False, "error": str(e),
+                               "order_id": "", "sl_order_id": "", "tp_order_id": "", "api_log": []})()
+    else:
+        print(f"  [模拟] 将{'做多' if eval_result.result == EvalResult.ENTRY_LONG else '做空'}")
+        print(f"  入场: {metrics.entry_price:.1f} | SL: {metrics.stop_loss:.1f} | TP: {metrics.take_profit:.1f}")
+
+    # ═══════════════════════════════════════════════════════════════════
+    # Step 6: Monitoring guidance
+    # ═══════════════════════════════════════════════════════════════════
+    print(f"\n  [Step 6] 持仓监控指引")
+
+    direction_str = "做多" if eval_result.result == EvalResult.ENTRY_LONG else "做空"
+    print(f"\n  {'='*60}")
+    print(f"  策略已{'执行' if (execute and getattr(exec_result, 'executed', False)) else '分析完成'}")
+    print(f"  {'='*60}")
+    print(f"""
+  交易摘要:
+    策略:   {t.get('name', parsed.template)} ({parsed.symbol} {parsed.timeframe})
+    方向:   {direction_str}
+    入场:   {metrics.entry_price:.1f} | 止损: {metrics.stop_loss:.1f} | 止盈: {metrics.take_profit:.1f}
+    盈亏比: {metrics.risk_reward_ratio:.2f}:1 | 预估胜率: {metrics.estimated_win_rate:.1%}
+    仓位:   {parsed.position_pct}% | 期望收益: {metrics.expectancy:.2f}%/笔
+
+  持仓期间监控规则:
+    - 每 4H 用 Skills 获取市场数据
+    - 检查: EMA趋势 / MACD交叉 / RSI极端 / 成交量异动
+    - 检查: 情绪面(恐惧贪婪) / 宏观面(Risk-On/Off) / 消息面(重大事件)
+    - 风险预警: 接近SL/TP 85%时提醒
+    - 立即平仓: 趋势反转 + 任一指标确认
+    - 立即平仓: 重大利空消息 + 持仓方向不利
+
+  平仓后自动生成:
+    - 盈亏记录 (USDT + %)
+    - 交易评级 (A/B/C/D/F)
+    - 经验总结
+    - 完整交易日志
+""")
+
+    if eval_result.risk_warnings:
+        print(f"  [当前风险提示]")
+        for w in eval_result.risk_warnings:
+            print(f"  [!] {w}")
+
+    return {
+        "status": "entry" if eval_result.result != EvalResult.NO_TRADE else "no_trade",
+        "parsed": parsed.__dict__,
+        "market": market.to_dict(),
+        "evaluation": {
+            "result": eval_result.result.value,
+            "confidence": eval_result.confidence,
+            "passed": eval_result.passed_count,
+            "total": eval_result.total_count,
+            "checks": [{"name": c.name, "passed": c.passed, "expected": c.expected, "actual": c.actual}
+                      for c in eval_result.checks],
+            "reason": eval_result.reason,
+            "risk_warnings": eval_result.risk_warnings,
+        },
+        "metrics": metrics.__dict__,
+        "execution": {
+            "executed": exec_result.executed if exec_result else False,
+            "order_id": getattr(exec_result, "order_id", "") if exec_result else "",
+            "sl_order_id": getattr(exec_result, "sl_order_id", "") if exec_result else "",
+            "tp_order_id": getattr(exec_result, "tp_order_id", "") if exec_result else "",
+            "error": getattr(exec_result, "error", "") if exec_result else "",
+        },
+        "monitoring_guide": {
+            "check_interval": parsed.timeframe,
+            "checks": ["EMA趋势", "MACD交叉", "RSI极端", "成交量异动",
+                      "情绪面(恐惧贪婪)", "宏观面(Risk-On/Off)", "消息面(重大事件)"],
+            "exit_triggers": ["趋势反转 + 指标确认", "重大利空消息", "接近SL/TP 85%+"],
+        },
+    }
+
+
 def main() -> None:
     import argparse
 
@@ -507,6 +878,8 @@ Examples:
   python run.py                          Full demo (backtest + live test)
   python run.py create                   Interactive NL strategy creation
   python run.py create "BTC 4H趋势策略 EMA金叉进场 止损2%"
+  python run.py evaluate "BTC 4H趋势" --market-data '{"technical":{...}}'
+  python run.py evaluate "DOGE 1H动量" --market-data-file market.json --execute
   python run.py once                     Single strategy check, dry-run
   python run.py once --config presets/conservative.yaml
   python run.py daemon                   Continuous monitoring (dry-run)
@@ -521,21 +894,33 @@ Examples:
     create_p.add_argument("text", nargs="?", default=None,
                          help="Natural language strategy description")
 
-    # ── Subcommand: daemon ───────────────────────────────────────────
-    daemon_p = sub.add_parser("daemon", help="Continuous trading loop")
-    daemon_p.add_argument("--config", "-c", default="config.yaml",
-                          help="Path to config YAML (default: config.yaml)")
-    daemon_p.add_argument("--live", action="store_true",
-                          help="Execute real orders (default: dry-run only)")
-    daemon_p.add_argument("--once", action="store_true",
-                          help="Run one cycle and exit")
+    # ── Subcommand: evaluate (Skill-driven strategy check) ─────────────
+    eval_p = sub.add_parser("evaluate",
+        help="Evaluate strategy conditions against Skill-provided market data")
+    eval_p.add_argument("text", help="Natural language strategy description")
+    eval_p.add_argument("--market-data", "-m", default="",
+                       help="Market data JSON string (from Skills)")
+    eval_p.add_argument("--market-data-file", "-f", default="",
+                       help="Path to market data JSON file")
+    eval_p.add_argument("--execute", "-x", action="store_true",
+                       help="Execute trade if conditions met (Demo Trading)")
+    eval_p.add_argument("--live", action="store_true",
+                       help="Real orders (default: dry-run even with --execute)")
 
-    # ── Subcommand: once ──────────────────────────────────────────────
-    once_p = sub.add_parser("once", help="Single strategy check (dry-run)")
-    once_p.add_argument("--config", "-c", default="config.yaml",
-                        help="Path to config YAML (default: config.yaml)")
-    once_p.add_argument("--live", action="store_true",
-                        help="Execute real orders")
+    # ── Subcommand: trade (complete flow: NL → Skills → Metrics → Execute → Monitor) ─
+    trade_p = sub.add_parser("trade",
+        help="Complete agent flow: NL strategy → Skill analysis → metrics → execute → monitor guide")
+    trade_p.add_argument("text", help="Natural language strategy description")
+    trade_p.add_argument("--market-data-file", "-f", default="",
+                       help="Path to market data JSON file (from Skills)")
+    trade_p.add_argument("--execute", "-x", action="store_true",
+                       help="Execute trade if conditions met")
+    trade_p.add_argument("--live", action="store_true",
+                       help="Real orders on Bitget (default: dry-run)")
+
+    # ── Note: daemon/once moved to Claude Code orchestration loop ────
+    # Use `python run_cycle_once.py` for single-cycle or
+    # Claude Code autonomous loop with Skills cross-validation
 
     args = parser.parse_args()
 
@@ -556,20 +941,31 @@ Examples:
                 print("  No input, using default example.")
                 user_input = "BTC 4H趋势跟随策略 EMA金叉进场 RSI过滤 止损2% 止盈10%"
             _create_flow(user_input)
-    elif args.command == "daemon":
-        from daemon import run_daemon
-        dry_run = not args.live
-        if not dry_run:
-            print("WARNING: Live mode — orders WILL be placed on Bitget Demo Trading")
-            resp = input("Continue? (yes/no): ").strip().lower()
-            if resp != "yes":
-                print("Aborted.")
-                return
-        run_daemon(args.config, dry_run=dry_run, once=args.once)
-    elif args.command == "once":
-        from daemon import run_daemon
-        dry_run = not args.live
-        run_daemon(args.config, dry_run=dry_run, once=True)
+    elif args.command == "evaluate":
+        # Load market data from file or string
+        market_data = args.market_data
+        if args.market_data_file:
+            with open(args.market_data_file, "r", encoding="utf-8") as f:
+                market_data = f.read()
+        _evaluate_and_execute_flow(
+            args.text, market_data_json=market_data,
+            execute=args.execute, dry_run=not args.live,
+        )
+    elif args.command == "trade":
+        market_data = ""
+        if args.market_data_file:
+            with open(args.market_data_file, "r", encoding="utf-8") as f:
+                market_data = f.read()
+        _full_trade_flow(
+            args.text, market_data_json=market_data,
+            execute=args.execute, dry_run=not args.live,
+        )
+    elif args.command in ("daemon", "once"):
+        print("=" * 60)
+        print("  The daemon/once commands have been replaced by:")
+        print("    python run_cycle_once.py            # single cycle check")
+        print("  Or use Claude Code autonomous loop with Skills cross-validation.")
+        print("=" * 60)
     else:
         _run_full_demo()
 

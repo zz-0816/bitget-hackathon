@@ -1,8 +1,8 @@
-# Adaptive Trading Agent（自适应交易代理）
+# 全自动策略交易 Agent
 
 > **Bitget AI Base Camp Hackathon S1 — 赛道一：交易 Agent**
 >
-> 团队: zz_0816 | 技术栈: Python + Bitget Agent Hub
+> 团队: zz_0816 | 技术栈: Python + Claude Code + Bitget Agent Hub Skills
 
 ---
 
@@ -10,224 +10,220 @@
 
 **目标用户：加密货币散户交易者。**
 
-散户交易者面临的核心痛点：
+核心痛点：追涨杀跌、凭感觉操作、无系统风控。
 
-1. **追涨杀跌**：看到涨了就追进去，看到跌了就恐慌割肉，缺乏客观判断标准
-2. **毫无交易逻辑**：凭感觉、看群消息、跟 KOL 喊单做决策，没有可复现的交易体系
-3. **无系统风控**：不知道设多少仓位、什么位置止损、一天亏多少该停手
-
-本项目用一个**四层闭环自动交易 Agent** 替代散户的主观判断：
+本项目用一个**全自动策略 Agent** 替代散户的主观判断：
 
 ```
-你的角色: 设定策略参数 + 风险预算（1 分钟）
+你的角色: 用自然语言描述策略（1 分钟）
 
-Agent 的角色:
-  感知层 → 自动计算 RSI/MACD/EMA/ATR/Bollinger 等 60+ 技术指标
-  决策层 → BTC SMC 三重确认 + MEME 动量突破双策略并行评估
-  风控层 → 仓位上限 / 敞口上限 / 日亏损熔断 / 盈亏比过滤
-  执行层 → 输出标准化订单参数（可直接对接 Bitget API）
+Agent 的角色（全自动）:
+  NL 策略解析   → 识别 symbol/timeframe/template/参数
+  4 Skill 验证   → 技术面 + 情绪面 + 宏观面 + 消息面 交叉验证
+  5 条件评估     → EMA金叉 + MACD方向 + ADX趋势 + RSI区间 + 价格vs均线
+  风控过滤       → 情绪极端/宏观风险/重大事件 三重过滤
+  自动执行       → Demo Trading 入场 + SL/TP 计划委托
+  持续监控       → 7 维退出条件检查, 触发自动平仓
+  P&L 总结       → 自动生成交易总结 + A-F 评级
 ```
-
-**效果：散户从"凭感觉操作"变成"有纪律执行"，每一笔交易都有据可查。**
 
 ---
 
-## 二、评委一键运行
+## 二、评委快速上手
 
-### 首次设置（仅需 1 步，1 分钟）
+### 1. 配置 API Key（1 分钟）
 
 ```bash
-# 1. 复制 MCP 配置模板，填入你的 Bitget Demo Trading API Key
 cp .mcp.json.example .mcp.json
-# 编辑 .mcp.json，将 your-api-key-here 等三个字段替换为你的 API Key
+# 编辑 .mcp.json，填入 Bitget Demo Trading API Key（沙盒模式，Read + Trade 权限）
 ```
 
-然后打开 Claude Code 加载本项目即可。
-
-**无需手动配置权限** — 项目已内置 `.claude/settings.json`，对所有安全操作（Bash/MCP/Skill/文件写入/WebFetch）进行了预授权。评委不会被反复询问权限弹窗。
-
-### 运行
+### 2. 安装依赖
 
 ```bash
-# 2. 安装依赖（仅需 Python 3.10+）
 pip install -r requirements.txt
-
-# 3. 最简启动 — 自然语言创建策略 + Agent 持续监控
-python quickstart.py
-python quickstart.py "BTC 4H趋势策略 EMA金叉进场 止损2%"
-python quickstart.py --once                   # 单周期检查
-python quickstart.py --live                   # 真实下单模式
-
-# 3. 完整演示（回测 + Demo Trading + Agent 闭环）
-python run.py
-
-# 分场景运行：
-python run.py create                          # ★ 自然语言创建策略（交互式）
-python run.py create "BTC 4H趋势策略 EMA金叉进场 止损2%"
-python run.py once                            # 单次策略检查（dry-run）
-python run.py once --config presets/conservative.yaml
-python run.py daemon                          # 持续自动交易（dry-run）
-python run.py daemon --live                   # 持续自动交易（真实下单）
 ```
 
-`quickstart.py` 一键完成 5 步（无需任何子命令）：
+### 3. 开始使用（在 Claude Code 中直接用中文对话）
 
-| 步骤 | 内容 | 输出 |
-|------|------|------|
-| Step 1 | 自然语言输入策略描述 | 中文直接描述即可 |
-| Step 2 | 自动解析 → 生成配置 | `output/quickstart_config.yaml` |
-| Step 3 | Demo Trading 实时验证 | 行情→Agent四层→信号→订单链路 |
-| Step 4 | Playbook 自动打包 | `output/playbook_generated/` |
-| Step 5 | 启动 Agent 持续监控 | daemon 持续运行 |
+**无需 CLI，直接对话即可操作：**
 
-### 策略配置化（用户无需写代码）
+| 你说什么 | Agent 做什么 |
+|---------|------------|
+| "帮我做一个 BTC 4H 趋势跟随策略" | 完整流程：解析→验证→审核报告→Playbook |
+| "检查一下当前 BTC" | 四维交叉审核（不创建策略，只输出报告） |
+| "启动持续监控 BTC 15min 趋势做多" | 后台启动自主循环，每 15 分钟检查一次 |
+| "当前持仓怎么样" | 查询 Bitget Demo Trading 持仓状态 |
+| "回测一下这个策略" | 运行 backtest benchmark 输出对比结果 |
 
-编辑 `config.yaml` 即可自定义策略参数和风控规则：
-
-```yaml
-# config.yaml — 用户只需改这个文件
-strategy:
-  name: "BTC SMC Triple Confluence"
-  symbols: ["BTCUSDT"]
-  timeframes: ["4H"]
-
-risk:
-  position_pct: 2.0       # 单笔仓位上限
-  exposure_pct: 30.0      # 总敞口上限
-  daily_loss_pct: 5.0     # 日亏损熔断
-
-execution:
-  mode: "demo"            # demo / live
-  trade_size_usdt: 100    # 每笔金额
-  dry_run: true           # true=只看信号不下单
-```
-
-提供 3 套预设模板（`presets/`）：趋势跟随 / 保守型 / MEME 动量突破。
+支持的策略描述示例：
+- `"BTCUSDT 15min趋势跟随 EMA金叉进场 MACD上涨确认 做多 止损1%止盈2%"`
+- `"DOGE 1H动量突破 RSI在55-65之间 做多"`
+- `"ETH震荡策略 布林带下轨买入上轨卖出"`
 
 ---
 
-## 三、核心架构
+## 三、核心技术架构
 
 ```
-感知(Perception) → 决策(Decision) → 风控(Risk) → 执行(Execution)
-     │                   │                │              │
- 60+ 技术指标        双策略引擎        3 层风控      标准化订单
- RSI/MACD/EMA/    BTC SMC 三重确认   单笔仓位≤2%    Bitget MCP
- ATR/Bollinger/   MEME 动量突破      总敞口≤30%     参数映射
- ADX/BB%                                   日亏损熔断 5%
+Claude Code (编排器/运行时)
+  │
+  ├─ [每轮循环] 并行调用 4 个 Skills (MCP tools):
+  │   ├─ crypto_derivatives     → OHLCV K线数据
+  │   ├─ sentiment_index        → 恐惧贪婪指数
+  │   ├─ derivatives_sentiment  → 多空比 / OI
+  │   ├─ rates_yields           → 宏观利率 / 利差
+  │   └─ news_feed              → 加密新闻
+  │
+  ├─ [指标计算] agent/auto_cycle.py::compute_indicators_from_ohlcv()
+  │   EMA12/26/20/50 + MACD(DIF/DEA/HIST) + RSI14 + ATR14 + BB(20,2) + ADX14
+  │
+  ├─ [策略评估] agent/strategy_executor.py::evaluate_strategy()
+  │   5 条件加权检查 + 情绪/宏观/新闻三重过滤
+  │
+  ├─ [交易执行] DemoClient → Bitget Demo Trading Sandbox
+  │   入场限价单 + SL/TP 计划委托 (自动部署)
+  │
+  ├─ [持仓监控] agent/strategy_executor.py::evaluate_exit_conditions()
+  │   7 维退出检查 → 触发自动平仓 → P&L + A-F 评级
+  │
+  └─ [状态持久化] output/auto_trade_state.json
+      position / cycles / PnL / trade_history
 ```
 
-### 策略详解
+### 为什么用 Claude Code 作为编排器？
 
-**BTC SMC 三重确认（4H）**：
-- EMA 趋势对齐 + RSI 动量确认 + MACD 方向确认 + ADX 趋势强度过滤
-- 三重同时满足才进场，任一条件破坏即出场
-
-**MEME 动量突破（1H）**：
-- RSI 动量区间(55-65) + MACD 加速 + 成交量激增
-- 分批止盈（50%仓位在 1.5R，剩余跟踪止盈）
-
-### 风控三层防护
-
-| 层级 | 规则 | 说明 |
-|------|------|------|
-| 仓位控制 | 单笔 ≤ 账户 2% | 防止单笔重仓 |
-| 敞口控制 | 总敞口 ≤ 账户 30% | 防止过度交易 |
-| 熔断机制 | 日亏损 ≥ 5% 停手 | 防止情绪化连续亏损 |
-| 盈亏比过滤 | 最低 1.5:1 | 过滤低质量信号 |
+Skills（MCP 市场数据工具）**只能由 Claude Code 调用**，独立 Python 进程无法访问。因此 Claude Code 是运行时，Python 模块（`agent/auto_cycle.py`）是计算引擎——Claude Code 取数据，Python 算指标 + 评估 + 执行。
 
 ---
 
-## 四、可核查使用记录
+## 四、策略评估引擎
 
-每次运行自动输出以下审计日志到 `output/` 目录：
+### 5 条件加权检查（trend_following 模板）
 
-| 日志文件 | 内容 |
-|----------|------|
-| `output/trade_log.json` | 所有策略的全部逐笔交易（回测） |
-| `output/demo_trading_log.json` | Demo Trading 实盘操作日志 |
-| `output/daemon_log.json` | 持续 Agent 循环运行日志 |
-| `output/api_calls.jsonl` | 全链路 API 调用审计（请求/响应/耗时/成败） |
+| # | 检查项 | 权重 | 说明 |
+|---|--------|------|------|
+| 1 | EMA Golden Cross (12/26) | 25% | EMA12 > EMA26 金叉确认 |
+| 2 | MACD Direction | 25% | DIF > DEA 多头排列 |
+| 3 | ADX Trending | 20% | ADX > 25 趋势市确认 |
+| 4 | RSI Zone | 15% | 30 < RSI < 70 非极端区间 |
+| 5 | Price vs EMA20 | 15% | 价格 > EMA20 短期趋势确认 |
 
-每笔交易包含：策略名称、进场时间、出场时间、方向、进场价、出场价、盈亏百分比、持仓周期、出场原因。评委可直接打开 JSON 文件逐笔核查。
+### 三重过滤器
+
+| 过滤器 | 数据来源 | 规则 |
+|--------|---------|------|
+| 情绪过滤 | 恐惧贪婪指数 + 多空比 | FG < 25 做多信号打折; LS ratio 趋势反转警告 |
+| 宏观过滤 | 利率 + 利差 + 信用利差 | Risk-Off 时做多信号打折; 收益率曲线倒挂警告 |
+| 新闻过滤 | CoinDesk/Decrypt/CoinTelegraph | 重大地缘/监管事件 → 降低置信度 |
+
+### 7 维退出条件
+
+| 退出条件 | 触发规则 |
+|---------|---------|
+| SL 触及 | 价格触及止损位 |
+| TP 触及 | 价格触及止盈位 |
+| EMA 破坏 | EMA12 < EMA26（金叉转为死叉） |
+| MACD 翻转 | DIF < DEA（多头转空头） |
+| RSI 极端 | RSI > 85（超买退出） |
+| 时间止损 | 持仓超过 N 根 K 线未盈利 |
+| 拖尾止损 | 盈利后 ATR 动态止损 |
 
 ---
 
-## 五、项目结构
+## 五、可核查证据
+
+### 交易与审计记录（`output/`）
+
+| 文件 | 内容 |
+|------|------|
+| `api_calls.jsonl` | 全链路 API 调用审计（29 次, 100% 成功） |
+| `trade_log.json` | 39 笔回测交易（8 策略变体） |
+| `demo_trading_log.json` | Demo Trading 实盘验证（7 阶段完整链路） |
+| `auto_trade_state.json` | 自主循环状态持久化 |
+| `strategy_eval_report.json` | 策略评估结果 + 风控过滤详情 |
+| `COMPETITION_EVIDENCE.md` | 赛道一完整证据包 |
+
+### 回测指标摘要（39 笔交易, 8 策略变体）
+
+| 策略 | 品种 | 方向 | 周期 | 胜率 | 平均盈亏% |
+|------|------|------|------|------|---------|
+| BTC SMC | BTCUSDT | Long | 1D | 30% | -0.33% |
+| BTC SMC | BTCUSDT | Short | 1D | 46% | +1.39% |
+| BTC SMC | BTCUSDT | Short | 4H | 75% | +4.43% |
+| DOGE Mom | DOGEUSDT | Short | 1D | 50% | +3.54% |
+
+---
+
+## 六、项目结构
 
 ```
 bitget_test/
-├── agent/                    # Agent 核心引擎（四层闭环）
-│   ├── agent.py              # 主控循环 + AgentOutput
-│   ├── config.py             # 配置中心
-│   ├── perception.py         # 感知层（指标计算 + 市场数据结构）
-│   ├── decision.py           # 决策层（Signal 引擎 + 情绪过滤）
-│   ├── execution.py          # 执行层（Order → Bitget MCP 参数）
-│   ├── risk.py               # 风控层（仓位/敞口/熔断/RR 过滤）
-│   ├── strategy_factory.py   # NL 策略解析器 + 配置生成 + Playbook 打包
-│   └── api_logger.py         # 全链路 API 调用审计日志（JSONL）
-├── strategies/               # 策略模块
-│   ├── indicators.py         # 60+ 技术指标库
-│   ├── btc_smc.py            # BTC SMC 三重确认策略
-│   ├── meme_momentum.py      # MEME 动量突破策略
-│   └── playbook.py           # 策略注册中心 + 批量评估
-├── backtest/                 # 回测模块
-│   ├── btc_smc_backtest.py   # BTC SMC 独立回测
-│   ├── meme_momentum_backtest.py  # MEME 独立回测
-│   └── benchmark.py          # 多策略横向对比
-├── data/                     # 历史行情数据（JSON）
-├── output/                   # ★ 交易记录 + Agent 日志输出
-│   ├── trade_log.json        # 回测交易记录
-│   ├── demo_trading_log.json # Demo Trading 实盘日志
-│   ├── daemon_log.json       # 持续交易循环日志
-│   └── api_calls.jsonl       # 全链路 API 审计
-├── presets/                  # 策略预设模板（用户可直接使用）
+├── agent/                          # Agent 核心引擎
+│   ├── auto_cycle.py               # ★ 自主循环引擎 (run_cycle + 指标计算)
+│   ├── strategy_executor.py        # ★ 策略评估 + 退出条件 + P&L 评级
+│   ├── strategy_factory.py         # NL 策略解析 → 结构化配置
+│   ├── market_snapshot.py          # 市场快照（技术/情绪/宏观/新闻）
+│   ├── position_monitor.py         # 持仓监控 + 状态管理
+│   ├── agent.py                    # 四层闭环 TradingAgent
+│   ├── perception.py               # 感知层 (MarketData/Sentiment/Macro)
+│   ├── decision.py                 # 决策引擎 (Signal/SignalType)
+│   ├── execution.py                # 执行引擎 (Order)
+│   ├── risk.py                     # 风控引擎 (RiskManager)
+│   ├── config.py                   # Agent 配置
+│   └── api_logger.py               # API 调用审计日志
+├── strategies/                     # 策略模块
+│   ├── btc_smc.py                  # BTC SMC 三重确认策略
+│   ├── meme_momentum.py            # MEME 动量突破策略
+│   ├── indicators.py               # 60+ 技术指标库
+│   └── playbook.py                 # 策略注册中心
+├── backtest/                       # 回测模块
+│   ├── btc_smc_backtest.py         # BTC SMC 独立回测
+│   ├── meme_momentum_backtest.py   # MEME 独立回测
+│   └── benchmark.py                # 多策略横向对比
+├── data/                           # 行情数据
+│   ├── btc_15min_latest.json       # BTC 15min 实时 OHLCV
+│   ├── btc_1d_bitget.json          # BTC 1D Bitget 数据
+│   ├── btc_4h_bitget.json          # BTC 4H Bitget 数据
+│   ├── doge_1h_bitget.json         # DOGE 1H Bitget 数据
+│   ├── doge_1d_bitget.json         # DOGE 1D Bitget 数据
+│   └── market_snapshot_latest.json # 最新四维市场快照
+├── output/                         # ★ 交易记录 + 证据
+│   ├── api_calls.jsonl             # API 审计日志
+│   ├── trade_log.json              # 回测交易记录
+│   ├── demo_trading_log.json       # Demo Trading 日志
+│   ├── auto_trade_state.json       # 循环状态持久化
+│   ├── strategy_eval_report.json   # 策略评估报告
+│   ├── COMPETITION_EVIDENCE.md     # 完整证据包
+│   └── playbook_generated/         # 自动生成 Playbook
+├── presets/                        # 策略预设模板
 │   ├── btc_trend_following.yaml
 │   ├── conservative.yaml
 │   └── meme_breakout.yaml
-├── output/playbook_generated/ # ★ 自动生成的 Playbook 包
-├── .claude/
-│   └── settings.json         # ★ 权限预配置（评委无需手动授权）
-├── .mcp.json.example         # ★ MCP 配置模板 → 评委复制为 .mcp.json
-├── CLAUDE.md                 # ★ Agent 角色定义（策略创建运行审核机器人）
-├── config.yaml               # ★ 用户配置文件（改参数不写代码）
-├── quickstart.py             # ★ 一键策略创建 + Agent 监控（推荐入口）
-├── run.py                    # 完整演示入口
-├── daemon.py                 # 持续交易循环引擎
-├── demo_trading_test.py      # Bitget Demo Trading 完整测试
-├── requirements.txt          # Python 依赖
-└── README.md                 # 本文件
-```
-
----
-
-## 六、环境配置（评委无需此步骤，已预配置）
-
-项目已通过 `.claude/settings.json` 预配置了所有权限。评委只需完成 `.mcp.json.example → .mcp.json` 的 API Key 配置（见第二节）。
-
-```bash
-# 如需安装 Bitget Agent Hub（MCP + Skill Hub）
-npx bitget-hub upgrade-all --target claude
-
-# 评委只需要一个 Bitget Demo Trading API Key（沙盒模式，Read + Trade 权限）
-# 填入 .mcp.json 即可，无需配置环境变量
+├── run_cycle_once.py               # 单轮循环启动器
+├── run.py                          # CLI 功能入口
+├── demo_trading_test.py            # DemoClient (Bitget 沙盒)
+├── config.yaml                     # 用户配置（改参数不写代码）
+├── CLAUDE.md                       # Agent 角色定义 + 行为准则
+└── requirements.txt                # Python 依赖
 ```
 
 ---
 
 ## 七、提交材料清单
 
-- [x] **Demo 可运行** — `pip install -r requirements.txt && python quickstart.py`
-- [x] **项目说明** — 散户追涨杀跌 → Agent 系统化交易
-- [x] **可核查使用记录** — `output/trade_log.json` + `output/demo_trading_log.json` + `output/daemon_log.json` + `output/api_calls.jsonl`
-- [x] **回测指标** — 8 策略变体完整对比（胜率/夏普/最大回撤/盈亏比/期望值）
-- [x] **Bitget Demo Trading 实盘测试** — 7 阶段完整链路（账户→行情→信号→风控→下单→验证→日志）
-- [x] **策略配置化** — `config.yaml` 用户改参数不写代码 + 3 套预设模板
-- [x] **自然语言创建策略** — `python quickstart.py "中文描述"` 一键生成配置+验证+Playbook
-- [x] **持续交易循环** — `python quickstart.py` 自动进入 daemon 监控
-- [x] **全链路 API 审计** — `output/api_calls.jsonl` JSONL 格式记录每次 API 调用
-- [x] **权限预配置** — `.claude/settings.json` 预授权所有安全操作，评委开箱即用
-- [x] **CLAUDE.md 角色定义** — 策略创建运行审核机器人，支持自然语言对话式操作
-- [x] **Playbook 加分项** — 自动生成 Playbook 包到 `output/playbook_generated/`
+- [x] **Demo 可运行** — `pip install -r requirements.txt` + Claude Code 对话操作
+- [x] **项目说明** — 散户追涨杀跌 → Agent 全自动系统化交易
+- [x] **可核查使用记录** — `output/` 目录 6 类审计文件
+- [x] **回测指标** — 39 笔交易, 8 策略变体, 完整对比
+- [x] **Bitget Demo Trading 验证** — 29 次 API 调用, 100% 成功, 下单→查询→取消 全链路
+- [x] **Skills 四维验证** — 技术面 + 情绪面 + 宏观面 + 消息面 交叉验证
+- [x] **全自动循环** — Claude Code 编排 + auto_cycle.py 引擎, 7 轮自主运行
+- [x] **自然语言策略** — 中文描述 → parse_strategy() → 结构化配置
+- [x] **风控多层过滤** — 5 条件加权 + 3 重过滤器 + 7 维退出
+- [x] **策略配置化** — `config.yaml` + `presets/` 3 套模板
+- [x] **Playbook 加分项** — 自动生成 `output/playbook_generated/`
+- [x] **CLAUDE.md 角色定义** — 策略创建运行审核机器人
+- [x] **权限预配置** — `.claude/settings.json` 开箱即用
 - [x] **GitHub 仓库** — https://github.com/zz-0816/bitget-hackathon
 - [ ] **传播帖链接** — 待发布
