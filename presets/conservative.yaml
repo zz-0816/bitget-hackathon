@@ -1,0 +1,39 @@
+# 保守型配置 — 小仓位 + 严格风控 + 高置信度要求
+strategy:
+  name: "Conservative BTC Trend"
+  symbols: ["BTCUSDT"]
+  timeframes: ["4H", "1D"]
+
+  indicators:
+    ema_fast: 12
+    ema_slow: 26
+    rsi_period: 14
+    rsi_oversold: 30
+    rsi_overbought: 70
+    macd_fast: 12
+    macd_slow: 26
+    macd_signal: 9
+    adx_period: 14
+    adx_threshold: 30          # 更高趋势强度要求
+    atr_period: 14
+    bb_period: 20
+    bb_std: 2.0
+
+  signal:
+    min_confidence: 0.75       # 更高置信度门槛
+    require_multi_tf: true     # 要求多周期共振
+    sentiment_filter: true
+
+risk:
+  position_pct: 1.0            # 单笔仅 1%
+  exposure_pct: 15.0           # 总敞口 15%
+  daily_loss_pct: 3.0          # 更紧熔断
+  min_rr: 2.0                  # 更高盈亏比要求
+  atr_stop_mult: 1.5           # 更紧止损
+  atr_tp_mult: 3.0
+
+execution:
+  mode: "demo"
+  trade_size_usdt: 50
+  interval: "4h"
+  dry_run: true

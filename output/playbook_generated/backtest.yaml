@@ -1,0 +1,8 @@
+name: btcusdt-trend-following-4h
+symbol: BTCUSDT
+timeframe: 4H
+trade_size_pct: 2.0
+fees: 0.06
+stop_loss_pct: 2.0
+take_profit_pct: 10.0
+start: "2026-01-01"

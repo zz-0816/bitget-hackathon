@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(technical-analysis)",
+      "Skill(sentiment-analyst)",
+      "Skill(macro-analyst)",
+      "Skill(news-briefing)",
+      "Skill(market-intel)",
+
+      "mcp__bitget__*",
+      "mcp__market-data__*",
+
+      "Bash(python *)",
+      "Bash(pip *)",
+      "Bash(git *)",
+      "Bash(npx *)",
+      "Bash(where *)",
+      "Bash(mkdir *)",
+      "Bash(cat *)",
+      "Bash(cmd *)",
+      "Bash(tasklist *)",
+
+      "Write(output/**)",
+      "Edit(**/*.py)",
+      "Edit(**/*.yaml)",
+      "Edit(**/*.md)",
+
+      "WebFetch(domain:bitget-ai.gitbook.io)",
+      "WebFetch(domain:www.bitget.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.bitget.com)",
+      "WebSearch"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "bitget"
+  ]
+}

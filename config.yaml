@@ -1,0 +1,45 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Adaptive Trading Agent — User Configuration
+# 用户只需修改此文件即可自定义策略和风控参数
+# ═══════════════════════════════════════════════════════════════════════════
+
+strategy:
+  name: "BTC SMC Triple Confluence"
+  symbols: ["BTCUSDT"]
+  timeframes: ["4H"]           # 主交易周期；可多周期: ["4H", "1D"]
+
+  # ── 技术指标参数 ──────────────────────────────────────────────────────
+  indicators:
+    ema_fast: 12               # 快线 EMA 周期
+    ema_slow: 26               # 慢线 EMA 周期
+    rsi_period: 14             # RSI 计算周期 (Wilder's smoothing)
+    rsi_oversold: 30           # RSI 超卖阈值
+    rsi_overbought: 70         # RSI 超买阈值
+    macd_fast: 12              # MACD 快线
+    macd_slow: 26              # MACD 慢线
+    macd_signal: 9             # MACD 信号线
+    adx_period: 14             # ADX 计算周期
+    adx_threshold: 25          # ADX 趋势强度门槛 (>25 = 趋势市)
+    atr_period: 14             # ATR 计算周期
+    bb_period: 20              # Bollinger Bands 周期
+    bb_std: 2.0                # Bollinger 标准差倍数
+
+  # ── 信号决策 ──────────────────────────────────────────────────────────
+  signal:
+    min_confidence: 0.60       # 最低置信度门槛（低于此值不进场）
+    require_multi_tf: false    # 是否要求多周期共振
+    sentiment_filter: true     # 是否启用情绪过滤器
+
+risk:
+  position_pct: 2.0            # 单笔仓位占账户百分比
+  exposure_pct: 30.0           # 总敞口占账户百分比上限
+  daily_loss_pct: 5.0          # 日亏损熔断百分比
+  min_rr: 1.5                  # 最低盈亏比 (reward/risk)
+  atr_stop_mult: 2.0           # 止损 = 入场价 ± ATR × 此倍数
+  atr_tp_mult: 3.0             # 止盈 = 入场价 ± ATR × 此倍数
+
+execution:
+  mode: "demo"                 # "demo" = Bitget Demo Trading, "live" = 实盘
+  trade_size_usdt: 100         # 每笔交易 USDT 金额
+  interval: "4h"               # 检查频率: "1h", "4h", "1d"
+  dry_run: true                # true = 只输出信号不下单, false = 真实下单

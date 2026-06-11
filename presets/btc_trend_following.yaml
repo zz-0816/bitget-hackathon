@@ -1,0 +1,39 @@
+# BTC SMC 趋势跟随 — 预设在回测中表现最优（BTC 4H/1D）
+strategy:
+  name: "BTC SMC Trend Following"
+  symbols: ["BTCUSDT"]
+  timeframes: ["4H"]
+
+  indicators:
+    ema_fast: 12
+    ema_slow: 26
+    rsi_period: 14
+    rsi_oversold: 30
+    rsi_overbought: 70
+    macd_fast: 12
+    macd_slow: 26
+    macd_signal: 9
+    adx_period: 14
+    adx_threshold: 25
+    atr_period: 14
+    bb_period: 20
+    bb_std: 2.0
+
+  signal:
+    min_confidence: 0.60
+    require_multi_tf: false
+    sentiment_filter: true
+
+risk:
+  position_pct: 2.0
+  exposure_pct: 30.0
+  daily_loss_pct: 5.0
+  min_rr: 1.5
+  atr_stop_mult: 2.0
+  atr_tp_mult: 3.0
+
+execution:
+  mode: "demo"
+  trade_size_usdt: 100
+  interval: "4h"
+  dry_run: true

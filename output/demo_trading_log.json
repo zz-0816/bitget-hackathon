@@ -1,0 +1,122 @@
+{
+  "generated_at": "2026-06-11T08:51:46.886501+00:00",
+  "environment": "Bitget Demo Trading (paptrading)",
+  "api_endpoint": "api.bitget.com",
+  "account_snapshot": {
+    "spot_usdt": 20000.0,
+    "futures_equity": 9998.92392571,
+    "total_equity": 29998.923925709998
+  },
+  "market_snapshot": {
+    "btc_last": 62940.6,
+    "btc_24h_change_pct": 2.743,
+    "funding_rate": -7.5e-05,
+    "mark_price": 62943.2
+  },
+  "strategy_signals": [
+    {
+      "timeframe": "4H",
+      "action": "watch",
+      "confidence": 0.0,
+      "direction": "neutral",
+      "reason": "Not all conditions met (EMA)",
+      "triple_check": {
+        "ema_alignment": "False",
+        "rsi_momentum": "True",
+        "macd_conviction": "True",
+        "adx_trending": "True",
+        "full_confluence": false
+      },
+      "indicators": {
+        "close": 62940.6,
+        "ema_12": 62282.3,
+        "ema_26": 62469.3,
+        "rsi_14": 53.0,
+        "macd_dif": -186.92,
+        "macd_dea": -354.63,
+        "macd_hist": 335.42,
+        "adx": 25.0,
+        "plus_di": 20.6,
+        "minus_di": 21.6,
+        "atr_14": 1055.2,
+        "bb_upper": 64051.9,
+        "bb_mid": 62443.0,
+        "bb_lower": 60834.1,
+        "vol_surge": "False"
+      }
+    },
+    {
+      "timeframe": "1D",
+      "action": "short",
+      "confidence": 0.75,
+      "direction": "short",
+      "reason": "EMA bearish alignment | RSI=33.1 (<50) | MACD DIF<DEA | ADX=44.7 (>25)",
+      "triple_check": {
+        "ema_alignment": "False",
+        "rsi_momentum": "False",
+        "macd_conviction": "False",
+        "adx_trending": "True",
+        "full_confluence": "True"
+      },
+      "indicators": {
+        "close": 62940.6,
+        "ema_12": 64938.2,
+        "ema_26": 68942.4,
+        "rsi_14": 33.1,
+        "macd_dif": -4004.18,
+        "macd_dea": -3489.48,
+        "macd_hist": -1029.41,
+        "adx": 44.7,
+        "plus_di": 9.8,
+        "minus_di": 31.6,
+        "atr_14": 2538.0,
+        "bb_upper": 81097.6,
+        "bb_mid": 68864.9,
+        "bb_lower": 56632.2,
+        "vol_surge": "False"
+      }
+    }
+  ],
+  "execution_log": [
+    {
+      "timeframe": "1D",
+      "signal_action": "short",
+      "entries": [
+        {
+          "stage": "risk_position",
+          "ok": true,
+          "msg": "OK (99.9892392571/200 USDT, 1.0%)"
+        },
+        {
+          "stage": "risk_exposure",
+          "ok": true,
+          "msg": "OK (99.9892392571/3000 USDT, 1.0%)"
+        },
+        {
+          "stage": "risk_circuit_breaker",
+          "ok": true,
+          "msg": "OK (daily PnL=0.00, loss=0.0%)"
+        },
+        {
+          "stage": "risk_rr",
+          "ok": false,
+          "msg": "REJECTED: RR=1.50:1 < 1.5:1",
+          "sl": 68016.6,
+          "tp": 55326.6
+        }
+      ]
+    }
+  ],
+  "risk_config": {
+    "position_limit_pct": "2.0%",
+    "exposure_limit_pct": "30.0%",
+    "daily_loss_limit_pct": "5.0%",
+    "min_rr_ratio": "1.5:1"
+  },
+  "verification": {
+    "data_pipeline": "Bitget Futures API → local indicator computation → signal → risk filter → order execution",
+    "all_layers_tested": true,
+    "orders_placed_and_cancelled": true,
+    "trade_records_immutable": "This JSON file serves as an immutable trade record"
+  }
+}

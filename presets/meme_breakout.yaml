@@ -1,0 +1,39 @@
+# MEME 动量突破 — 适合 DOGE 等山寨币（1H 级别）
+strategy:
+  name: "MEME Momentum Breakout"
+  symbols: ["DOGEUSDT"]
+  timeframes: ["1H"]
+
+  indicators:
+    ema_fast: 12
+    ema_slow: 26
+    rsi_period: 14
+    rsi_oversold: 40
+    rsi_overbought: 65
+    macd_fast: 12
+    macd_slow: 26
+    macd_signal: 9
+    adx_period: 14
+    adx_threshold: 20          # MEME 币趋势强度要求较低
+    atr_period: 14
+    bb_period: 20
+    bb_std: 2.0
+
+  signal:
+    min_confidence: 0.65
+    require_multi_tf: false
+    sentiment_filter: false    # MEME 币不需要情绪过滤
+
+risk:
+  position_pct: 1.0            # MEME 币高风险，仓位更小
+  exposure_pct: 15.0
+  daily_loss_pct: 5.0
+  min_rr: 2.0                  # 更高盈亏比补偿高风险
+  atr_stop_mult: 2.0
+  atr_tp_mult: 4.0             # 更宽止盈，分批出场
+
+execution:
+  mode: "demo"
+  trade_size_usdt: 50
+  interval: "1h"
+  dry_run: true

@@ -1,0 +1,45 @@
+{
+  "daemon_started": "2026-06-11T09:34:04.128943+00:00",
+  "last_updated": "2026-06-11T09:34:06.182599+00:00",
+  "cycles": 1,
+  "signals_generated": 0,
+  "trades_placed": 0,
+  "runtime": "0:00:02.053658",
+  "recent_pipelines": [
+    {
+      "cycle": 1,
+      "timestamp": "2026-06-11T17:34:06.172174",
+      "perception": {
+        "trend": "bearish",
+        "volatility": "normal",
+        "volume": "normal",
+        "primary": {
+          "symbol": "BTCUSDT",
+          "close": 62855.2,
+          "rsi": 52.44554408924479,
+          "macd": -193.72764414007543,
+          "atr": 1055.2404510326176
+        }
+      },
+      "signal": {
+        "type": "NO_TRADE",
+        "symbol": "BTCUSDT",
+        "confidence": 0.0,
+        "reason": "All strategies: no actionable signal",
+        "entry_price": null,
+        "stop_loss": null,
+        "take_profit": null,
+        "size": null,
+        "strategy": "NONE"
+      },
+      "risk": {
+        "approved": true,
+        "reason": "Pass-through (no action)",
+        "adjusted_size": null,
+        "checks": {}
+      },
+      "order": null,
+      "narrative": "[1] BTCUSDT @ 62855.2 | Trend: bearish | RSI=52 | Vol=normal | Signal: NO_TRADE | Risk: OK - Pass-through (no action)"
+    }
+  ]
+}

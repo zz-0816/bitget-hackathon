@@ -1,0 +1,43 @@
+# Auto-generated strategy config from NL description
+# Input: "BTC 4H趋势策略 EMA金叉 止损2% 3x"
+# Template: trend_following | Confidence: 67%
+
+strategy:
+  name: "Trend Following (BTCUSDT 4H)"
+  symbols: ["BTCUSDT"]
+  timeframes: ["4H"]
+
+  indicators:
+    rsi_period: 14
+    rsi_oversold: 30
+    rsi_overbought: 70
+    ema_fast: 20
+    ema_slow: 46
+    macd_fast: 12
+    macd_slow: 26
+    macd_signal: 9
+    adx_period: 14
+    adx_threshold: 25
+    atr_period: 14
+    bb_period: 20
+    bb_std: 2.0
+
+  signal:
+    min_confidence: 0.60
+    require_multi_tf: false
+    sentiment_filter: true
+
+risk:
+    position_pct: 2.0
+    exposure_pct: 30.0
+    daily_loss_pct: 2.0
+    min_rr: 5.0
+    atr_stop_mult: 2.0
+    atr_tp_mult: 10.0
+
+execution:
+  mode: "demo"
+  trade_size_usdt: 100
+  leverage: 3
+  interval: "4h"
+  dry_run: true

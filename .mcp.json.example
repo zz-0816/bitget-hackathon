@@ -1,0 +1,21 @@
+{
+  "_comment": "复制此文件为 .mcp.json 并填入你的 Bitget API Key。请使用 Demo Trading（沙盒）模式的 API Key。",
+  "_instructions": [
+    "1. 登录 bitget.com → API 管理 → 创建 API Key（Read + Trade 权限）",
+    "2. 开启沙盒模式（BITGET_SANDBOX=true）",
+    "3. 将 API Key / Secret Key / Passphrase 填入下方对应位置",
+    "4. 重命名本文件为 .mcp.json",
+    "5. 在 Claude Code 中打开项目，权限已预配置无需额外操作"
+  ],
+  "mcpServers": {
+    "bitget": {
+      "command": "npx",
+      "args": ["-y", "bitget-mcp-server", "--modules", "all", "--paper-trading"],
+      "env": {
+        "BITGET_API_KEY": "your-api-key-here",
+        "BITGET_SECRET_KEY": "your-secret-key-here",
+        "BITGET_PASSPHRASE": "your-passphrase-here"
+      }
+    }
+  }
+}
