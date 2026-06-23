@@ -213,20 +213,44 @@ bitget_test/
 
 ---
 
-## 七、提交材料清单
+## 七、提交材料清单（赛道一要求对照）
 
-- [x] **Demo 可运行** — `pip install -r requirements.txt` + Claude Code 对话操作
-- [x] **项目说明** — 散户追涨杀跌 → Agent 全自动系统化交易
-- [x] **可核查使用记录** — `output/` 目录 6 类审计文件
-- [x] **回测指标** — 39 笔交易, 8 策略变体, 完整对比
-- [x] **Bitget Demo Trading 验证** — 29 次 API 调用, 100% 成功, 下单→查询→取消 全链路
-- [x] **Skills 四维验证** — 技术面 + 情绪面 + 宏观面 + 消息面 交叉验证
-- [x] **全自动循环** — Claude Code 编排 + auto_cycle.py 引擎, 7 轮自主运行
-- [x] **自然语言策略** — 中文描述 → parse_strategy() → 结构化配置
-- [x] **风控多层过滤** — 5 条件加权 + 3 重过滤器 + 7 维退出
-- [x] **策略配置化** — `config.yaml` + `presets/` 3 套模板
-- [x] **Playbook 加分项** — 自动生成 `output/playbook_generated/`
-- [x] **CLAUDE.md 角色定义** — 策略创建运行审核机器人
-- [x] **权限预配置** — `.claude/settings.json` 开箱即用
-- [x] **GitHub 仓库** — https://github.com/zz-0816/bitget-hackathon
-- [ ] **传播帖链接** — 待发布
+### 必填材料
+
+| # | 要求 | 状态 | 链接/文件 |
+|---|------|------|----------|
+| 1 | **GitHub 仓库** (Public + README) | ✅ | [github.com/zz-0816/bitget-hackathon](https://github.com/zz-0816/bitget-hackathon) |
+| 2 | **Paper Trading 日志** | ✅ | [`output/PAPER_TRADING_LOG.md`](output/PAPER_TRADING_LOG.md) — 含时间戳、交易对、方向、价格、数量、账户余额变化 |
+| 3 | **实盘/模拟交易记录** | ✅ | [`output/api_calls.jsonl`](output/api_calls.jsonl) (119 次 API 审计) + [`output/cycle_evidence.jsonl`](output/cycle_evidence.jsonl) (17 条循环证据) |
+
+### 补充材料
+
+| # | 要求 | 状态 | 链接/文件 |
+|---|------|------|----------|
+| 4 | **回测报告** (附生成代码) | ✅ | [`output/trade_log.json`](output/trade_log.json) (39 笔) + [`backtest/`](backtest/) (生成代码) |
+| 5 | **演示视频** (≤3min) | ⬜ | 暂未录制 (项目可直接对话操作，无需登录) |
+
+### 证据索引
+
+```
+output/
+├── PAPER_TRADING_LOG.md          ★ 提交用 Paper Trading 日志 (含完整交易明细+账户变动)
+├── COMPETITION_EVIDENCE.md       ★ 完整证据包 (架构/策略/循环/风控/评分对照)
+├── api_calls.jsonl               ★ 119 次 Bitget API 调用审计 (JSONL 格式)
+├── cycle_evidence.jsonl          ★ 17 条自主循环证据 (含市场快照+指标+决策)
+├── auto_trade_state.json            持久化循环状态 (36 轮, 1 笔交易)
+├── trade_log.json                   39 笔回测交易记录 (8 策略变体)
+├── demo_trading_log.json            Demo Trading 验证 (7 阶段完整链路)
+├── strategy_eval_report.json        策略评估报告
+├── daemon_log.json                  Daemon 模式运行日志
+└── playbook_generated/             自动生成策略 Playbook
+```
+
+### 评分方向自查
+
+| 方向 | 本项目 |
+|------|--------|
+| **思路深度** | 散户追涨杀跌痛点 → 全自动策略 Agent; NL→4 Skills 交叉验证→5条件加权→3重过滤器→7维退出, 核心假设成立 |
+| **可运行性** | `pip install -r requirements.txt` 后在 Claude Code 中直接对话操作; Demo Trading 沙盒 119 次 API 调用验证 |
+| **完成度** | MVP 完整跑通: NL 策略 → 36 轮自主循环 → 1 笔完整交易 (入场→监控→风控退出→P&L 评级); 诚实描述完成度 |
+| **新颖性** | Claude Code 作为 AI Agent 编排器 (非传统脚本调度); 只有 AI Agent 才能自然语言→自动执行的闭环 |

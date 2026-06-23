@@ -387,16 +387,15 @@ agent/
 
 | 文件 | 内容 |
 |------|------|
+| `output/PAPER_TRADING_LOG.md` | **★ 提交用 Paper Trading 日志** — 逐笔交易明细 + 账户余额变动 |
+| `output/COMPETITION_EVIDENCE.md` | **★ 完整证据包** — 架构/策略/循环/风控/评分对照 |
 | `output/auto_trade_state.json` | 持久化循环状态 (36 cycles, 1 trade) |
-| `output/api_calls.jsonl` | API 调用完整审计日志 (91 calls) |
+| `output/api_calls.jsonl` | API 调用完整审计日志 (119 calls) |
 | `output/cycle_evidence.jsonl` | 自主循环证据链 (17 条记录, 含完整市场快照) |
 | `output/trade_log.json` | 39笔回测交易记录 (8 策略变体) |
 | `output/demo_trading_log.json` | Demo Trading 完整验证报告 (7 阶段) |
 | `output/strategy_eval_report.json` | 策略评估结果 + 风控过滤详情 |
-| `output/daemon_log.json` | Daemon 模式运行日志 |
-| `output/demo_trading_log.json` | Demo Trading 验证日志 |
 | `output/nl_generated_config.yaml` | 自然语言生成的策略配置 |
-| `output/COMPETITION_EVIDENCE.md` | **本证据文件** |
 
 ---
 
