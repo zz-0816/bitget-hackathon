@@ -2,27 +2,15 @@ node_modules/
 .env
 *.tgz
 package/
-.claude/cache/
-.claude/sessions/
-.claude/shell-snapshots/
-.claude/paste-cache/
-.claude/telemetry/
+
+# Entire .claude directory is local config — do not commit
+.claude/
 
 __pycache__/
 *.pyc
 
 # Sensitive — don't commit API keys to public repos
-.claude/settings.local.json
 .mcp.json
-
-# Claude internal state (not project code)
-.claude/andrej-karpathy-skills/
-.claude/projects/
-.claude/file-history/
-.claude/history.jsonl
-.claude/backups/
-.claude/.last-cleanup
-.claude/ide/
 
 # Docs & temp files
 *.docx
