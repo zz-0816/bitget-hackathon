@@ -1,6 +1,6 @@
 """Auto-generated Playbook: Trend Following (BTCUSDT 4H)
 
-NL input: "BTC 4H趋势策略 EMA金叉 止损2% 3x"
+NL input: "BTC 4H趋势跟随策略 EMA金叉进场 RSI过滤 止损2% 止盈10%"
 """
 import math
 from typing import Any

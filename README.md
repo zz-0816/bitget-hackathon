@@ -159,10 +159,12 @@ Skills（MCP 市场数据工具）**只能由 Claude Code 调用**，独立 Pyth
 
 ```
 bitget_test/
-├── agent/                          # Agent 核心引擎
+├── agent/                          # Agent 核心引擎 (15 文件)
 │   ├── auto_cycle.py               # ★ 自主循环引擎 (run_cycle + 指标计算)
 │   ├── strategy_executor.py        # ★ 策略评估 + 退出条件 + P&L 评级
 │   ├── strategy_factory.py         # NL 策略解析 → 结构化配置
+│   ├── claude_cycle.py             # Claude Code 编排单次循环入口 + 证据链
+│   ├── bitget_mcp_server.py        # Python MCP Server (Bitget API)
 │   ├── market_snapshot.py          # 市场快照（技术/情绪/宏观/新闻）
 │   ├── position_monitor.py         # 持仓监控 + 状态管理
 │   ├── agent.py                    # 四层闭环 TradingAgent
@@ -189,12 +191,13 @@ bitget_test/
 │   ├── doge_1d_bitget.json         # DOGE 1D Bitget 数据
 │   └── market_snapshot_latest.json # 最新四维市场快照
 ├── output/                         # ★ 交易记录 + 证据
-│   ├── api_calls.jsonl             # API 审计日志
-│   ├── trade_log.json              # 回测交易记录
+│   ├── api_calls.jsonl             # API 审计日志 (91 calls)
+│   ├── cycle_evidence.jsonl        # 循环证据链 (17 records)
+│   ├── trade_log.json              # 回测交易记录 (39 trades)
 │   ├── demo_trading_log.json       # Demo Trading 日志
-│   ├── auto_trade_state.json       # 循环状态持久化
+│   ├── auto_trade_state.json       # 循环状态持久化 (36 cycles)
 │   ├── strategy_eval_report.json   # 策略评估报告
-│   ├── COMPETITION_EVIDENCE.md     # 完整证据包
+│   ├── COMPETITION_EVIDENCE.md     # ★ 完整证据包
 │   └── playbook_generated/         # 自动生成 Playbook
 ├── presets/                        # 策略预设模板
 │   ├── btc_trend_following.yaml

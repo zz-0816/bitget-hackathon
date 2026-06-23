@@ -1,11 +1,11 @@
 name: btcusdt-trend-following-4h
 display_name: "Trend Following (BTCUSDT 4H)"
 version: "1.0.0"
-description: "Auto-generated strategy from NL: BTC 4H趋势策略 EMA金叉 止损2% 3x"
+description: "Auto-generated strategy from NL: BTC 4H趋势跟随策略 EMA金叉进场 RSI过滤 止损2% 止盈10%"
 long_description: |
   This strategy was auto-generated from a natural language description:
 
-  "BTC 4H趋势策略 EMA金叉 止损2% 3x"
+  "BTC 4H趋势跟随策略 EMA金叉进场 RSI过滤 止损2% 止盈10%"
 
   Strategy type: Trend Following
   Entry logic: EMA趋势对齐 + MACD方向确认

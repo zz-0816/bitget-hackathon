@@ -64,8 +64,8 @@ def run_agent_pipeline() -> None:
         SentimentSnapshot,
     )
 
-    btc_4h = load_data("btc_4h.json")
-    btc_1d = load_data("btc_1d.json")
+    btc_4h = load_data("btc_4h_bitget.json")
+    btc_1d = load_data("btc_1d_bitget.json")
     print(f"  Data: BTC 4H {len(btc_4h)} bars | BTC 1D {len(btc_1d)} bars")
 
     config = AgentConfig()
@@ -454,6 +454,123 @@ start: "2026-01-01"
 
   To run locally: python run.py once --config {config_path}
 """)
+
+def _run_monitor_cycle(
+    strategy_text: str = None,
+    continuous: bool = False,
+    interval_minutes: int = 15,
+    dry_run: bool = True,
+) -> None:
+    """Run monitoring cycle(s) with live Bitget data.
+
+    Args:
+        strategy_text: NL strategy. If None, uses saved state or default.
+        continuous: If True, loop indefinitely with interval.
+        interval_minutes: Minutes between cycles (continuous mode).
+        dry_run: If True, no real orders.
+    """
+    from agent.auto_cycle import run_cycle, compute_indicators_from_ohlcv, CycleState
+
+    # Determine strategy
+    if strategy_text is None:
+        state = CycleState.load()
+        if state.strategy_text:
+            strategy_text = state.strategy_text
+        else:
+            strategy_text = "BTCUSDT 15min趋势跟随 EMA金叉进场 做多 止损1%止盈2%"
+
+    strategy_text = strategy_text or "BTCUSDT 15min趋势跟随 EMA金叉进场 做多 止损1%止盈2%"
+
+    if continuous:
+        print("=" * 60)
+        print(f"  DAEMON MODE — {strategy_text}")
+        print(f"  Interval: {interval_minutes}min | Dry-run: {dry_run}")
+        print(f"  Press Ctrl+C to stop")
+        print("=" * 60)
+
+    try:
+        from demo_trading_test import DemoClient
+        mcp_path = os.path.join(os.path.dirname(__file__), ".mcp.json")
+        with open(mcp_path) as f:
+            mcp_cfg = json.load(f)
+        env = mcp_cfg["mcpServers"]["bitget"]["env"]
+        client = DemoClient(
+            api_key=env["BITGET_API_KEY"],
+            secret=env["BITGET_SECRET_KEY"],
+            passphrase=env["BITGET_PASSPHRASE"],
+        )
+    except Exception:
+        client = None
+
+    cycle_num = 0
+    while True:
+        cycle_num += 1
+        print(f"\n{'─' * 50}")
+        print(f"  Cycle #{cycle_num} — {datetime.now(timezone.utc):%Y-%m-%d %H:%M:%S} UTC")
+        print(f"{'─' * 50}")
+
+        # Fetch live candles
+        ohlcv_list = []
+        if client:
+            try:
+                df = client.get_candles("BTCUSDT", "15min", limit=200)
+                ohlcv_list = df.reset_index().to_dict(orient="records")
+                print(f"  Fetched {len(ohlcv_list)} 15min candles from Bitget")
+            except Exception as e:
+                print(f"  Error fetching candles: {e}")
+
+        # If no live data, try local file
+        if not ohlcv_list:
+            local_path = os.path.join(DATA_DIR, "btc_15min_latest.json")
+            if os.path.exists(local_path):
+                with open(local_path) as f:
+                    ohlcv_list = json.load(f)
+                print(f"  Using local data: {len(ohlcv_list)} bars")
+
+        if not ohlcv_list:
+            print("  No market data available, skipping cycle")
+            if not continuous:
+                break
+            time.sleep(interval_minutes * 60)
+            continue
+
+        # Compute indicators
+        indicators = compute_indicators_from_ohlcv(ohlcv_list)
+
+        # Build market data (sentiment/macro/news use defaults for standalone mode)
+        market_data = {
+            "technical": indicators,
+            "sentiment": {"fear_greed_index": 50, "fear_greed_label": "neutral", "long_short_ratio": 1.0},
+            "macro": {"regime": "neutral"},
+            "news": {"has_major_event": False, "bias": "neutral", "summary": ""},
+        }
+
+        # Run cycle
+        result = run_cycle(
+            strategy_text=strategy_text,
+            market_data_json=json.dumps(market_data),
+            dry_run=dry_run,
+            client=client,
+        )
+
+        status = result.get("status", "unknown")
+        print(f"  Result: {status}")
+        if status == "entry":
+            print(f"  Signal: {result.get('signal')} | Confidence: {result.get('confidence', 0):.0%}")
+            print(f"  Entry={result.get('entry_price')} SL={result.get('stop_loss')} TP={result.get('take_profit')}")
+        elif status == "no_trade":
+            print(f"  Reason: {result.get('reason', 'conditions not met')}")
+
+        if not continuous:
+            break
+
+        print(f"\n  Sleeping {interval_minutes}min until next cycle...")
+        try:
+            time.sleep(interval_minutes * 60)
+        except KeyboardInterrupt:
+            print("\n  Daemon stopped by user.")
+            break
+
 
 def _run_full_demo() -> None:
     """Phase 1 + Phase 2 + Phase 3: full competition demo."""
@@ -922,6 +1039,20 @@ Examples:
     # Use `python run_cycle_once.py` for single-cycle or
     # Claude Code autonomous loop with Skills cross-validation
 
+    daemon_p = sub.add_parser("daemon", help="Continuous monitoring with live Bitget data")
+    daemon_p.add_argument("text", nargs="?", default=None,
+                         help="Strategy description (uses saved state if omitted)")
+    daemon_p.add_argument("--interval", "-i", type=int, default=15,
+                         help="Minutes between cycles (default: 15)")
+    daemon_p.add_argument("--live", action="store_true",
+                         help="Real orders (default: dry-run)")
+
+    once_p = sub.add_parser("once", help="Single monitoring cycle with live Bitget data")
+    once_p.add_argument("text", nargs="?", default=None,
+                       help="Strategy description (uses saved state if omitted)")
+    once_p.add_argument("--live", action="store_true",
+                       help="Real orders (default: dry-run)")
+
     args = parser.parse_args()
 
     if args.command == "create":
@@ -961,11 +1092,12 @@ Examples:
             execute=args.execute, dry_run=not args.live,
         )
     elif args.command in ("daemon", "once"):
-        print("=" * 60)
-        print("  The daemon/once commands have been replaced by:")
-        print("    python run_cycle_once.py            # single cycle check")
-        print("  Or use Claude Code autonomous loop with Skills cross-validation.")
-        print("=" * 60)
+        _run_monitor_cycle(
+            strategy_text=args.text if hasattr(args, "text") and args.text else None,
+            continuous=(args.command == "daemon"),
+            interval_minutes=args.interval if hasattr(args, "interval") else 15,
+            dry_run=not (hasattr(args, "live") and args.live),
+        )
     else:
         _run_full_demo()
 

@@ -306,6 +306,17 @@ def run_cycle(
     if eval_result.result != EvalResult.NO_TRADE:
         metrics = estimate_trade_metrics(parsed, eval_result, market)
 
+        # Calculate absolute position size from account equity
+        pos_size = 0.0
+        if not dry_run and client:
+            try:
+                acct = client.get_futures_account()
+                equity = float(acct.get("available", 0))
+                pos_usdt = equity * metrics.position_size_pct / 100
+                pos_size = round(pos_usdt / metrics.entry_price, 6)
+            except Exception:
+                pos_size = 0.0
+
         print(f"\n  [SIGNAL] {eval_result.result.value} | "
               f"Confidence={eval_result.confidence:.0%} | "
               f"Checks={eval_result.passed_count}/{eval_result.total_count}")
@@ -314,55 +325,70 @@ def run_cycle(
               f"TP={metrics.take_profit:.1f}({metrics.reward_pct}%)")
         print(f"  [METRICS] Est.WinRate={metrics.estimated_win_rate:.1%} | "
               f"RR={metrics.risk_reward_ratio:.2f}:1 | "
-              f"Expectancy={metrics.expectancy:.2f}%/trade")
+              f"Expectancy={metrics.expectancy:.2f}%/trade | "
+              f"Size={pos_size}BTC")
 
-        if not dry_run and client:
+        if not dry_run and client and pos_size > 0:
             try:
                 side = "buy" if eval_result.result == EvalResult.ENTRY_LONG else "sell"
 
-                # Place entry order (limit, slightly below market for long / above for short)
-                limit_offset = 0.999 if side == "buy" else 1.001
-                entry_price = round(metrics.entry_price * limit_offset, 1)
-
+                # Place entry order (market — demo sandbox only supports market)
                 entry_params = {
                     "symbol": parsed.symbol,
                     "marginCoin": "USDT",
                     "productType": "USDT-FUTURES",
                     "side": side,
-                    "orderType": "limit",
-                    "size": str(metrics.position_size),
-                    "price": str(entry_price),
+                    "orderType": "market",
+                    "size": str(pos_size),
                     "tradeSide": "open",
+                    "marginMode": "crossed",
                 }
                 resp = client.post("/api/v2/mix/order/place-order", entry_params)
                 order_id = resp.get("data", {}).get("orderId", "")
-                print(f"  [EXECUTED] Entry order: id={order_id} price={entry_price}")
+                print(f"  [EXECUTED] Entry order: id={order_id} type=market size={pos_size}")
 
-                # Place SL plan order
+                # Place SL plan order (demo sandbox may reject)
                 sl_side = "sell" if side == "buy" else "buy"
-                sl_params = {
-                    "symbol": parsed.symbol,
-                    "marginCoin": "USDT",
-                    "productType": "USDT-FUTURES",
-                    "side": sl_side,
-                    "orderType": "limit",
-                    "size": str(metrics.position_size),
-                    "price": str(round(metrics.stop_loss, 1)),
-                    "tradeSide": "close",
-                    "triggerPrice": str(round(metrics.stop_loss, 1)),
-                    "triggerType": "mark_price",
-                }
-                sl_resp = client.post("/api/v2/mix/order/place-plan-order", sl_params)
-                sl_oid = sl_resp.get("data", {}).get("orderId", "")
-                print(f"  [EXECUTED] SL plan order: id={sl_oid} trigger={metrics.stop_loss:.1f}")
+                try:
+                    sl_params = {
+                        "symbol": parsed.symbol,
+                        "marginCoin": "USDT",
+                        "productType": "USDT-FUTURES",
+                        "side": sl_side,
+                        "orderType": "market",
+                        "size": str(pos_size),
+                        "tradeSide": "close",
+                        "triggerPrice": str(round(metrics.stop_loss, 1)),
+                        "triggerType": "mark_price",
+                        "planType": "normal_plan",
+                        "marginMode": "crossed",
+                    }
+                    sl_resp = client.post("/api/v2/mix/order/place-plan-order", sl_params)
+                    sl_oid = sl_resp.get("data", {}).get("orderId", "")
+                    print(f"  [EXECUTED] SL order: id={sl_oid} trigger={metrics.stop_loss:.1f}")
+                except Exception as sl_e:
+                    print(f"  [SL FAILED] Demo sandbox rejected plan-order: {sl_e}")
 
                 # Place TP plan order
-                tp_params = dict(sl_params)
-                tp_params["price"] = str(round(metrics.take_profit, 1))
-                tp_params["triggerPrice"] = str(round(metrics.take_profit, 1))
-                tp_resp = client.post("/api/v2/mix/order/place-plan-order", tp_params)
-                tp_oid = tp_resp.get("data", {}).get("orderId", "")
-                print(f"  [EXECUTED] TP plan order: id={tp_oid} trigger={metrics.take_profit:.1f}")
+                try:
+                    tp_params = {
+                        "symbol": parsed.symbol,
+                        "marginCoin": "USDT",
+                        "productType": "USDT-FUTURES",
+                        "side": sl_side,
+                        "orderType": "market",
+                        "size": str(pos_size),
+                        "tradeSide": "close",
+                        "triggerPrice": str(round(metrics.take_profit, 1)),
+                        "triggerType": "mark_price",
+                        "planType": "normal_plan",
+                        "marginMode": "crossed",
+                    }
+                    tp_resp = client.post("/api/v2/mix/order/place-plan-order", tp_params)
+                    tp_oid = tp_resp.get("data", {}).get("orderId", "")
+                    print(f"  [EXECUTED] TP order: id={tp_oid} trigger={metrics.take_profit:.1f}")
+                except Exception as tp_e:
+                    print(f"  [TP FAILED] Demo sandbox rejected plan-order: {tp_e}")
 
                 state.in_position = True
                 state.entry_time = now.isoformat()
@@ -370,7 +396,7 @@ def run_cycle(
                     "symbol": parsed.symbol,
                     "holdSide": side,
                     "openPriceAvg": str(metrics.entry_price),
-                    "total": str(metrics.position_size),
+                    "total": str(pos_size),
                 }
 
             except Exception as e:

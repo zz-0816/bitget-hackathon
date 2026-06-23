@@ -1,11 +1,11 @@
 # Auto-generated strategy config from NL description
-# Input: "BTCUSDT 5min ema金叉 止损2% 10x"
-# Template: trend_following | Confidence: 67%
+# Input: "BTC 4H趋势跟随策略 EMA金叉进场 RSI过滤 止损2% 止盈10%"
+# Template: trend_following | Confidence: 83%
 
 strategy:
-  name: "Trend Following (BTCUSDT 5min)"
+  name: "Trend Following (BTCUSDT 4H)"
   symbols: ["BTCUSDT"]
-  timeframes: ["5min"]
+  timeframes: ["4H"]
 
   indicators:
     rsi_period: 14
@@ -38,6 +38,6 @@ risk:
 execution:
   mode: "demo"
   trade_size_usdt: 100
-  leverage: 10
-  interval: "5m"
+  leverage: 3
+  interval: "4h"
   dry_run: true

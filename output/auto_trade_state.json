@@ -1,17 +1,35 @@
 {
   "strategy_text": "BTCUSDT 15min趋势跟随 EMA金叉进场 MACD上涨确认 做多 止损1%止盈2%",
-  "parsed_symbol": "BTCUSDT",
-  "parsed_timeframe": "5min",
-  "parsed_direction": "long",
-  "parsed_template": "trend_following",
-  "parsed_sl_pct": 1.0,
-  "parsed_tp_pct": 2.0,
-  "parsed_position_pct": 2.0,
+  "symbol": "BTCUSDT",
+  "timeframe": "5min",
+  "direction": "long",
+  "template": "trend_following",
+  "sl_pct": 1.0,
+  "tp_pct": 2.0,
+  "position_pct": 2.0,
   "in_position": false,
   "position": {},
   "entry_time": "",
-  "cycle_count": 9,
-  "trades_completed": 0,
-  "total_pnl": 0.0,
-  "trade_history": []
+  "cycle_count": 36,
+  "trades_completed": 1,
+  "total_pnl": -0.904540000000004,
+  "trade_history": [
+    {
+      "entry_price": 64445.38524590164,
+      "exit_price": 63760.1,
+      "pnl_pct": -1.06,
+      "pnl_usdt": -0.904540000000004,
+      "grade": "D",
+      "exit_reason": "接近止损位 (PnL=-1.1%, SL=1.0%); 趋势转为空头，EMA死叉",
+      "lessons": [
+        "亏损原因: 接近止损位 (PnL=-1.1%, SL=1.0%); 趋势转为空头，EMA死叉",
+        "实际亏损(1.1%)超过预设止损(1.0%)，需检查滑点",
+        "平仓触发因素: EMA死叉 (EMA20 < EMA50)"
+      ],
+      "closed_at": "2026-06-14T13:20:33.568390+00:00"
+    }
+  ],
+  "last_price": 64291.2,
+  "last_rsi": 40.71,
+  "last_macd_state": "BEAR"
 }
